@@ -1,29 +1,53 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{delete, get, post, put, web, App, HttpResponse, HttpServer, Responder};
+use crate::{db::connection::connect, routes::posts::{add_post, delete_post, get_posts, update_post, view_post}};
 
-#[get("/")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
-}
+pub mod db;
+pub mod models;
+pub mod routes;
+pub mod entities;
 
-#[post("/echo")]
-async fn echo(req_body: String) -> impl Responder {
-    HttpResponse::Ok().body(req_body)
-}
-
-async fn manual_hello() -> impl Responder {
-    HttpResponse::Ok().body("Hey there!")
-}
 
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| {
+
+    let db = connect().await.unwrap();
+
+    HttpServer::new(move || {
         App::new()
-            .service(hello)
-            .service(echo)
-            .route("/hey", web::get().to(manual_hello))
+        .app_data(web::Data::new(db.clone()))
+            .service(add_post)
+            .service(update_post)
+            .service(get_posts)
+            .service(view_post)
+            .service(delete_post)
     })
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
 }
+
+
+// use std::io::stdin;
+
+
+// fn takeinput()-> String {
+//     let mut input = String::new();
+//     stdin().read_line(&mut input ).expect("Cannot read input");
+//     input.trim().to_string()
+// }
+
+// fn main(){
+
+//     let list =["mobile", "mouse", "moneypot", "monitor", "mousepad"];
+
+//     loop{
+
+//             let input = takeinput();
+
+//             let search : Vec<&'static str >= list.into_iter().filter(|t| t.starts_with(&input)).collect();
+
+//             println!("Search = {:?}", search);
+//     }
+
+// }
