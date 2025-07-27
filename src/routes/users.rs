@@ -1,12 +1,12 @@
 use std::{default, ops::Add, time::{self, Duration, SystemTime, UNIX_EPOCH}};
 
-use actix_web::{ cookie::time::{self, convert::Minute, UtcDateTime}, delete, get, http::Error, post, put, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{  delete, get, http::Error, post, put, web, App, HttpResponse, HttpServer, Responder};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, ModelTrait, QueryFilter, Set};
 use serde::Deserialize;
 use crate::{error::error::MyError, jwt::model::Claims, models::db_models::DbConnection};
 use actix_web::{ Result};
 use argon2::{self, Config};
-
+use serde_json::json;
 use crate::entities::{prelude::*, *};
 
 #[derive(Deserialize, Clone)]
@@ -88,11 +88,15 @@ pub async fn login(db: web::Data<DbConnection> , userbody: web::Json<LoginUser>)
                 let secret = jsonwebtoken::EncodingKey::from_secret("secret".as_bytes());
                 let res = jsonwebtoken::encode(&header, &claims, &secret).unwrap();
 
+                Ok( HttpResponse::Ok().json(json!({
+                    "result": "success",
+                    "token": res
+                })))
+
             }else{
                 return Err(MyError::IncorrectPassword);
             }
 
-            Ok( HttpResponse::Ok().body("Register added"))
         },
         None=>{
             return  Err(MyError::NotFound);
