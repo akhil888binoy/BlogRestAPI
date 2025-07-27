@@ -8,7 +8,7 @@ use crate::models::db_models::DbConnection;
 pub async fn connect() -> Result<DbConnection, DbErr> {
     dotenv().ok();
     let dbstring = env::var("DATABASE_URL").expect("No DB Url found");
-    let db = Database::connect(dotenv::var(dbstring).unwrap()).await?;
+    let db = Database::connect(dbstring).await?;
     Ok(DbConnection{db})
 }
 

@@ -5,7 +5,8 @@ pub mod db;
 pub mod models;
 pub mod routes;
 pub mod entities;
-
+pub mod error;
+pub mod jwt;
 
 
 #[actix_web::main]
@@ -28,26 +29,3 @@ async fn main() -> std::io::Result<()> {
 }
 
 
-// use std::io::stdin;
-
-
-// fn takeinput()-> String {
-//     let mut input = String::new();
-//     stdin().read_line(&mut input ).expect("Cannot read input");
-//     input.trim().to_string()
-// }
-
-// fn main(){
-
-//     let list =["mobile", "mouse", "moneypot", "monitor", "mousepad"];
-
-//     loop{
-
-//             let input = takeinput();
-
-//             let search : Vec<&'static str >= list.into_iter().filter(|t| t.starts_with(&input)).collect();
-
-//             println!("Search = {:?}", search);
-//     }
-
-// }
