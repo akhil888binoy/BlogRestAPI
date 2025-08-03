@@ -21,7 +21,13 @@ pub enum MyError {
     NotFound,
 
     #[display("Incorrect Password")]
-    IncorrectPassword
+    IncorrectPassword,
+
+    #[display("User already exist")]
+    AlreadyExist,
+
+    #[display("Unauthorized")]
+    Unauthorized
 }
 
 impl error::ResponseError for MyError {
@@ -37,7 +43,9 @@ impl error::ResponseError for MyError {
             MyError::BadClientData => StatusCode::BAD_REQUEST,
             MyError::Timeout => StatusCode::GATEWAY_TIMEOUT,
             MyError::NotFound => StatusCode::NOT_FOUND,
-            MyError::IncorrectPassword=>StatusCode::UNAUTHORIZED
+            MyError::IncorrectPassword=>StatusCode::UNAUTHORIZED,
+            MyError::AlreadyExist=>StatusCode::ALREADY_REPORTED,
+            MyError::Unauthorized=>StatusCode::UNAUTHORIZED
         }
     }
 }

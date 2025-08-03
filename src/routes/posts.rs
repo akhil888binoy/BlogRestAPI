@@ -1,9 +1,9 @@
 use std::default;
 
-use actix_web::{delete, get, post, put, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{delete, get, post, put, web, App, HttpMessage, HttpRequest, HttpResponse, HttpServer, Responder};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, ModelTrait, QueryFilter, Set};
 use serde::Deserialize;
-use crate::models::db_models::DbConnection;
+use crate::{jwt::model::Claims, models::db_models::DbConnection};
 use actix_web::{ Result};
 
 use crate::entities::{prelude::*, *};
@@ -24,11 +24,14 @@ struct UpdatePost{
 }
 
 #[post("/posts")]
-pub async fn add_post(db : web::Data<DbConnection> , posts: web::Json<AddPost>) -> impl Responder {
+pub async fn add_post(authheader : HttpRequest ,db : web::Data<DbConnection> , posts: web::Json<AddPost>) -> impl Responder {
+    let extensions = authheader.extensions();
+    let auth = extensions.get::<Claims>().unwrap();
 
     let post = post::ActiveModel{
         title: Set(posts.title.clone()),
         text: Set(posts.text.clone()),
+        user_id: Set(auth.sub.to_string()),
         ..Default::default()
     };
 
@@ -78,7 +81,8 @@ pub async fn update_post(posts: web::Json<UpdatePost> , db : web::Data<DbConnect
 
 
 #[delete("/posts/{id}")]
-pub async fn delete_post(req_body: String, db : web::Data<DbConnection>, path : web::Path<u32>) -> impl Responder {
+pub async fn delete_post(db : web::Data<DbConnection>, path : web::Path<u32>) -> impl Responder {
+    
     let id= path.into_inner();
     let post = post::Entity::find()
                                 .filter(post::Column::Id.eq(id))

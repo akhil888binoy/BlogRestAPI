@@ -1,6 +1,6 @@
 use std::{default, ops::Add, time::{self, Duration, SystemTime, UNIX_EPOCH}};
 
-use actix_web::{  delete, get, http::Error, post, put, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{  delete, get, http::Error, post, put, web, App, HttpMessage, HttpRequest, HttpResponse, HttpServer, Responder};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, ModelTrait, QueryFilter, Set};
 use serde::Deserialize;
 use crate::{error::error::MyError, jwt::model::Claims, models::db_models::DbConnection};
@@ -17,7 +17,6 @@ struct RegisterUser{
 
 #[post("/register")]
 pub async fn register_user(db : web::Data<DbConnection> , user: web::Json<RegisterUser> )-> Result<impl Responder, MyError >{
-
     let salt = b"randomsalt";
     let config = Config::default();
     let hash = argon2::hash_encoded( user.password.as_bytes(), salt, &config).unwrap();
@@ -26,13 +25,14 @@ pub async fn register_user(db : web::Data<DbConnection> , user: web::Json<Regist
                                                 .filter(user::Column::Email.eq(user.email.clone()))
                                                 .one(&db.db)
                                                 .await
-                                                .map_err(|_| MyError::BadClientData);
+                                                .map_err(|_| MyError::BadClientData)?;
     
     match existing_user{
-        Ok(data)=>{
-            return Err(MyError::NotFound)
+        Some(data)=>{
+            println!("///////////////////////////");
+            return Err(MyError::AlreadyExist)
         },
-        Err(_)=>{
+        None=>{
                 let user = user::ActiveModel{
                     email: Set(user.email.clone()),
                     password: Set(hash),
@@ -66,11 +66,9 @@ pub async fn login(db: web::Data<DbConnection> , userbody: web::Json<LoginUser>)
         Some(user)=> {
 
             let verified = argon2::verify_encoded( &user.password ,  userbody.password.as_bytes()).unwrap();
-            let sys_time = SystemTime::now();
-            let one_sec = Duration::from_secs(900);
-
-                let now_plus_60 = std::time::SystemTime::now()
-                    .checked_add(time::Duration::from_secs(60))
+            
+            let now_plus_60 = std::time::SystemTime::now()
+                    .checked_add(time::Duration::from_secs(1000))
                     .unwrap()
                     .duration_since(UNIX_EPOCH)
                     .unwrap()
@@ -81,7 +79,7 @@ pub async fn login(db: web::Data<DbConnection> , userbody: web::Json<LoginUser>)
                 let claims = Claims{
                     sub : user.id,
                     email: user.email,
-                    exp: now_plus_60
+                    exp: now_plus_60 
                 };
 
                 let header = jsonwebtoken::Header::default();
@@ -104,3 +102,20 @@ pub async fn login(db: web::Data<DbConnection> , userbody: web::Json<LoginUser>)
     }
 }
 
+pub async fn get_user( authheader : HttpRequest , db : web::Data<DbConnection>)->Result<impl Responder , MyError>{
+
+    let extensions = authheader.extensions();
+    let auth = extensions.get::<Claims>().unwrap();
+
+
+    let user = user::Entity::find_by_id(auth.sub)
+                                .one(&db.db)
+                                .await
+                                .map_err(|_| MyError::NotFound)?;
+    
+    Ok( HttpResponse::Ok().json(json!({
+                    "result": "success",
+                    "user": user.unwrap()
+    })))
+
+}
